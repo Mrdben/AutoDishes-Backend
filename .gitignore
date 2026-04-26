@@ -1,0 +1,9 @@
+# 环境变量文件 (绝密)
+.env
+
+# 数据库文件 (数据)
+app/database.db
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
