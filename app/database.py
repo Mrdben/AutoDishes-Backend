@@ -12,17 +12,18 @@ async def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
+                phonenumber TEXT NOT NULL,
                 refresh_token TEXT
             )
         """)
         await db.commit()
 
-async def create_user(username: str, password_hash: str):
+async def create_user(username: str, password_hash: str, phonenumber: str):
     """创建用户"""
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
-            "INSERT INTO users (username, password_hash) VALUES (?, ?)",
-            (username, password_hash)
+            "INSERT INTO users (username, password_hash, phonenumber) VALUES (?, ?, ?)",
+            (username, password_hash, phonenumber,)
         )
         await db.commit()
 
@@ -30,10 +31,56 @@ async def get_user_by_username(username: str):
     """根据用户名查询用户"""
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute(
-            "SELECT id, username, password_hash FROM users WHERE username = ?",
+            "SELECT id, username, password_hash, phonenumber FROM users WHERE username = ?",
             (username,)
         )
         row = await cursor.fetchone()
         if row:
-            return {"id": row[0], "username": row[1], "password_hash": row[2]}
+            return {"id": row[0], "username": row[1], "password_hash": row[2], "phonenumber": row[3]}
         return None
+
+async def write_refresh_token_to_user(username: str, refresh_token: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE users SET refresh_token = ? WHERE username = ?",
+            (refresh_token, username,)
+        )
+        await db.commit()
+    
+async def get_username_by_refresh_token(refresh_token: str):
+    """根据用户名查询用户"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(
+            "SELECT username FROM users WHERE refresh_token = ?",
+            (refresh_token,)
+        )
+        row = await cursor.fetchone()
+        if row:
+            return row[0]
+        return None
+        
+async def update_user_password(username: str, new_password_hash: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE users SET password_hash = ? WHERE username = ?",
+            (new_password_hash, username,)
+        )
+        await db.execute(
+            "UPDATE users SET refresh_token = NULL WHERE username = ?",
+            (username,)
+        )
+        await db.commit()
+
+async def update_user_phonenumber(username: str, new_phonenumber: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE users SET phonenumber = ? WHERE username = ?",
+            (new_phonenumber, username,)
+        )
+        await db.commit()
+        
+async def delete_user(username: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("DELETE FROM users WHERE username = ?", (username,))
+        await db.commit()
+
