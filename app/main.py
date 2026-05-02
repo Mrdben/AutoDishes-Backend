@@ -54,7 +54,7 @@ def create_token(data: dict, expires_delta: timedelta):
 async def authenticate_user_by_password(username: str, password: str):
     # 这里直接调用我们在 database.py 里写好的函数
     # 注意：如果你的 database.py 里函数名叫 get_user，请改为 get_user
-    user = await database.get_user_by_username(username)
+    user = await database.get_user_by_username_or_phone_number(username)
 
     if not user:
         return False
@@ -73,7 +73,7 @@ async def get_user_by_access_token(token: str):
         raise HTTPException(status_code=401, detail="Token 已过期或无效")
 
     # 从数据库查用户信息
-    return await database.get_user_by_username(username)
+    return await database.get_user_by_username_or_phone_number(username)
 
 async def authenticate_user_by_password_token_phonenumber(token: str, password: str, phone_number: str):
     user = await get_user_by_access_token(token)
@@ -102,9 +102,13 @@ def read_root():
 
 @app.post("/register", response_model=UserRegisterResponse)
 async def register(request: UserRegisterRequest) -> dict:
-    existing_user = await database.get_user_by_username(request.username)
+    existing_user = await database.get_user_by_username_or_phone_number(request.username)
     if existing_user:
         raise HTTPException(status_code=400, detail=f"用户名:{request.username} 已存在")
+
+    existing_user = await database.get_username_by_phone_number(request.phone_number)
+    if existing_user:
+        raise HTTPException(status_code=400, detail=f"手机号:{request.phone_number} 已被注册")
 
     password_hash = pwd_context.hash(request.password)
     await database.create_user(request.username, password_hash, request.phone_number)
@@ -189,13 +193,18 @@ async def update_phone_number(token: str, request: UpdatePhoneNumberRequest):
     # 1. 验证 Token
     user = await authenticate_user_by_password_token_phonenumber(token, request.password, request.old_phone_number)
 
+    # 2, 检查新号码是否已经被注册
+    existing_user = await database.get_username_by_phone_number(request.new_phone_number)
+    if existing_user:
+        raise HTTPException(status_code=400, detail=f"手机号:{request.new_phone_number} 已被注册")
+
     # 4. 更新手机号
     await database.update_user_phone_number(user["username"], request.new_phone_number)
 
     return {"message": "更新手机号成功！"}
     
 # 注销账号接口
-@app.delete("/users/me")
+@app.post("/users/me")
 async def delete_account(token: str, request: DeleteUserRequest):
     # 1. 验证 Token, password, phonenumber
     user = await authenticate_user_by_password_token_phonenumber(token, request.password, request.phone_number)

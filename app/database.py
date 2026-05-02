@@ -12,7 +12,7 @@ async def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
-                phone_number TEXT NOT NULL,
+                phone_number TEXT UNIQUE NOT NULL,
                 refresh_token TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -28,12 +28,12 @@ async def create_user(username: str, password_hash: str, phone_number: str):
         )
         await db.commit()
 
-async def get_user_by_username(username: str):
+async def get_user_by_username_or_phone_number(username: str):
     """根据用户名查询用户"""
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute(
-            "SELECT id, username, password_hash, phone_number, created_at FROM users WHERE username = ?",
-            (username,)
+            "SELECT id, username, password_hash, phone_number, created_at FROM users WHERE username = ? OR phone_number = ?",
+            (username, username,)
         )
         row = await cursor.fetchone()
         if row:
@@ -42,6 +42,17 @@ async def get_user_by_username(username: str):
                     "password_hash": row[2], 
                     "phone_number": row[3],
                     "created_at": row[4]}
+        return None
+
+async def get_username_by_phone_number(phone_number: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(
+            "SELECT username FROM users WHERE phone_number = ? ",
+            (phone_number,)
+        )
+        row = await cursor.fetchone()
+        if row:
+            return row[0]
         return None
 
 async def write_refresh_token_to_user(username: str, refresh_token: str):
@@ -81,6 +92,10 @@ async def update_user_phone_number(username: str, new_phone_number: str):
         await db.execute(
             "UPDATE users SET phone_number = ? WHERE username = ?",
             (new_phone_number, username,)
+        )
+        await db.execute(
+            "UPDATE users SET refresh_token = NULL WHERE username = ?",
+            (username,)
         )
         await db.commit()
         
