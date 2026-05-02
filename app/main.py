@@ -75,7 +75,7 @@ async def get_user_by_access_token(token: str):
     # 从数据库查用户信息
     return await database.get_user_by_username(username)
 
-async def authenticate_user_by_password_token_phonenumber(token: str, password: str, phonenumber: str):
+async def authenticate_user_by_password_token_phonenumber(token: str, password: str, phone_number: str):
     user = await get_user_by_access_token(token)
     if not user:
         raise HTTPException(status_code=404, detail="用户不存在")
@@ -84,7 +84,7 @@ async def authenticate_user_by_password_token_phonenumber(token: str, password: 
     if not verify_password(password, user["password_hash"]):
         raise HTTPException(status_code=400, detail="密码错误")
     
-    if phonenumber != user["phonenumber"]:
+    if phone_number != user["phone_number"]:
         raise HTTPException(status_code=400, detail="手机号错误")
         
     return user
@@ -104,10 +104,10 @@ def read_root():
 async def register(request: UserRegisterRequest) -> dict:
     existing_user = await database.get_user_by_username(request.username)
     if existing_user:
-        raise HTTPException(status_code=400, detail="用户名已存在")
+        raise HTTPException(status_code=400, detail=f"用户名:{request.username} 已存在")
 
     password_hash = pwd_context.hash(request.password)
-    await database.create_user(request.username, password_hash, request.phonenumber)
+    await database.create_user(request.username, password_hash, request.phone_number)
 
     return {"message": "注册成功！", "username": request.username}
 
@@ -166,13 +166,16 @@ async def get_current_user(token: str) -> dict:
     if not user:
         raise HTTPException(status_code=404, detail="用户不存在")
 
-    return {"id": user["id"], "username": user["username"], "phonenumber": user["phonenumber"]}
+    return {"id": user["id"], 
+            "username": user["username"], 
+            "phone_number": user["phone_number"],
+            "created_at": user["created_at"]}
 
 # 修改密码接口
 @app.post("/users/me/change-password")
 async def change_password(token: str, request: ChangePasswordRequest):
     # 1. 验证 Token
-    user = await authenticate_user_by_password_token_phonenumber(token, request.old_password, request.phonenumber)
+    user = await authenticate_user_by_password_token_phonenumber(token, request.old_password, request.phone_number)
 
     # 4. 更新新密码
     new_hash = pwd_context.hash(request.new_password)
@@ -181,13 +184,13 @@ async def change_password(token: str, request: ChangePasswordRequest):
     return {"message": "密码修改成功！"}
     
 # 更新手机号
-@app.post("/users/me/update-phonenumber")
-async def update_phonenumber(token: str, request: UpdatePhoneNumberRequest):
+@app.post("/users/me/update-phone-number")
+async def update_phone_number(token: str, request: UpdatePhoneNumberRequest):
     # 1. 验证 Token
-    user = await authenticate_user_by_password_token_phonenumber(token, request.password, request.old_phonenumber)
+    user = await authenticate_user_by_password_token_phonenumber(token, request.password, request.old_phone_number)
 
     # 4. 更新手机号
-    await database.update_user_phonenumber(user["username"], request.new_phonenumber)
+    await database.update_user_phone_number(user["username"], request.new_phone_number)
 
     return {"message": "更新手机号成功！"}
     
@@ -195,7 +198,7 @@ async def update_phonenumber(token: str, request: UpdatePhoneNumberRequest):
 @app.delete("/users/me")
 async def delete_account(token: str, request: DeleteUserRequest):
     # 1. 验证 Token, password, phonenumber
-    user = await authenticate_user_by_password_token_phonenumber(token, request.password, request.phonenumber)
+    user = await authenticate_user_by_password_token_phonenumber(token, request.password, request.phone_number)
 
     # 2. 删除用户
     await database.delete_user(user["username"])

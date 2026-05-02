@@ -1,10 +1,11 @@
 from pydantic import BaseModel
+from datetime import datetime
 
 # --- 已有的类 ---
 class UserRegisterRequest(BaseModel):
     username: str
     password: str
-    phonenumber: str
+    phone_number: str
     
 class UserRegisterResponse(BaseModel):
     message: str
@@ -32,18 +33,19 @@ class RefreshTokenResponse(BaseModel):
 class GetUserByTokenResponse(BaseModel):
     id : int
     username : str
-    phonenumber : str
+    phone_number : str
+    created_at : datetime
     
 class ChangePasswordRequest(BaseModel):
     old_password: str
-    phonenumber: str
+    phone_number: str
     new_password: str
 
 class UpdatePhoneNumberRequest(BaseModel):
     password: str
-    old_phonenumber: str
-    new_phonenumber: str
+    old_phone_number: str
+    new_phone_number: str
     
 class DeleteUserRequest(BaseModel):
     password: str
-    phonenumber: str
+    phone_number: str
