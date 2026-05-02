@@ -15,7 +15,7 @@ from app.models import UserLoginRequest, UserLoginResponse
 from app.models import RefreshTokenRequest, RefreshTokenResponse
 from app.models import GetUserByTokenResponse, DeleteUserRequest
 from app.models import ChangePasswordRequest, UpdatePhoneNumberRequest
-
+from app.models import ResetPasswordRequest
 from pydantic import BaseModel
 
 load_dotenv()
@@ -186,7 +186,22 @@ async def change_password(token: str, request: ChangePasswordRequest):
     await database.update_user_password(user["username"], new_hash)
 
     return {"message": "密码修改成功！"}
-    
+
+@app.post("/users/me/reset-password")
+async def reset_password(request: ResetPasswordRequest):
+    user = await database.get_user_by_username_or_phone_number(request.username)
+
+    if not user:
+        raise HTTPException(status_code=404, detail="该用户不存在。")
+
+    if user["phone_number"] != request.phone_number:
+        raise HTTPException(status_code=400, detail="用户信息不符。")
+
+    new_hash = pwd_context.hash(request.new_password)
+    await database.update_user_password(request.username, new_hash)
+
+    return {"message": "重置密码成功！"}
+
 # 更新手机号
 @app.post("/users/me/update-phone-number")
 async def update_phone_number(token: str, request: UpdatePhoneNumberRequest):

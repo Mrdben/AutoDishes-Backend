@@ -41,6 +41,11 @@ class ChangePasswordRequest(BaseModel):
     phone_number: str
     new_password: str
 
+class ResetPasswordRequest(BaseModel):
+    username: str
+    phone_number: str
+    new_password: str
+
 class UpdatePhoneNumberRequest(BaseModel):
     password: str
     old_phone_number: str
