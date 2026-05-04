@@ -1,6 +1,8 @@
 import os
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from .users.routers import router as users_router
+from .families.routers import router as families_router
 from .database import init_database
 from dotenv import load_dotenv
 
@@ -9,6 +11,13 @@ load_dotenv()  # 无参数，自动从启动目录查找 .env，100%生效
 # --------------- 创建 FastAPI 实例 ---------------
 app = FastAPI(title="Android App Backend")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # --------------- 启动时初始化数据库 ---------------
 @app.on_event("startup")
 async def startup_event():
@@ -16,6 +25,7 @@ async def startup_event():
 
 # --------------- 挂载 auth 模块路由 ---------------
 app.include_router(users_router, prefix="/users", tags=["users"])
+app.include_router(families_router, prefix="/families", tags=["families"])
 
 # --------------- 根接口（测试用）---------------
 @app.get("/")
