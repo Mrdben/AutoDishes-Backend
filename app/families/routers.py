@@ -27,7 +27,7 @@ async def push_family_to_server(token: str, request: FamilyDto):
         
     # 把新获得的时间戳返回给app
     return {"item_id" : updated_data["family_id"],
-            "updated_at" : updated_date["updated_at"]}
+            "updated_at" : updated_data["updated_at"]}
 
 @router.get("/pull", response_model=FamilyDto)
 async def get_family_from_server(token: str) -> dict :
