@@ -8,9 +8,8 @@ async def create_families_table(db):
     """初始化数据库，创建用户表"""
     await db.execute("""
         CREATE TABLE IF NOT EXISTS families (
-            server_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            family_id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER UNIQUE NOT NULL,
-            family_id INTEGER NOT NULL,
             family_name TEXT NOT NULL,
             elder_ids TEXT NOT NULL DEFAULT '[]',
             is_deleted INTEGER NOT NULL DEFAULT 0,
@@ -19,32 +18,32 @@ async def create_families_table(db):
         )
     """)
 
-async def insert_family(user_id: int, family_data: dict[str, any]) -> str:
+async def insert_family( family_data: dict[str, any]) -> dict:
     elder_ids_json = json.dumps(family_data.get('elder_ids', []))
     async with aiosqlite.connect(DB_PATH_FAMILIES) as db:
         await db.execute(
             """
             INSERT INTO families 
-            (user_id, family_id, family_name, elder_ids, is_deleted)
-            VALUES (?, ?, ?, ?, ?)
+            (user_id, family_name, elder_ids, is_deleted)
+            VALUES (?, ?, ?, ?)
             """, (
-            user_id,
-            family_data['family_id'],
+            family_data['user_id'],
             family_data['family_name'],
             elder_ids_json,
             1 if family_data.get('is_deleted') else 0)
         )
         cursor = await db.execute(
-            "SELECT updated_at FROM families WHERE user_id = ?",
-            (user_id,)
+            "SELECT family_id, updated_at FROM families WHERE user_id = ?",
+            (family_data['user_id'],)
         )
         row = await cursor.fetchone()
         await db.commit()
         if row:
-            return row[0]
+            return {"family_id" : row[0],
+                    "updated_at" : row[1]}
         return None
 
-async def update_family(user_id: int, family_data: dict[str, any]) -> str:
+async def update_family(family_data: dict[str, any]) -> dict:
     elder_ids_json = json.dumps(family_data.get('elder_ids', []))
     async with aiosqlite.connect(DB_PATH_FAMILIES) as db:
         await db.execute(
@@ -59,21 +58,23 @@ async def update_family(user_id: int, family_data: dict[str, any]) -> str:
             family_data['family_name'],
             elder_ids_json,
             1 if family_data.get('is_deleted') else 0,
-            user_id)
+            family_data['user_id'])
             )
         cursor = await db.execute(
-            "SELECT updated_at FROM families WHERE user_id = ?",
-            (user_id,)
+            "SELECT family_id, updated_at FROM families WHERE user_id = ?",
+            (family_data['user_id'],)
         )
         row = await cursor.fetchone()
         await db.commit()
         if row:
-            return row[0]
+            return {"family_id" : row[0],
+                    "updated_at" : row[1]}
         return None
         
 
-async def get_family_by_id(user_id: str) -> Optional[dict[str, any]]:
+async def get_family_by_user_id(user_id: str) -> Optional[dict[str, any]]:
     async with aiosqlite.connect(DB_PATH_FAMILIES) as db:
+        db.row_factory = aiosqlite.Row
         cursor = await db.execute(
             "SELECT * FROM families WHERE user_id = ?",
             (user_id,)
@@ -88,7 +89,7 @@ async def get_family_by_id(user_id: str) -> Optional[dict[str, any]]:
             return data
         return None
 
-async def get_update_time_by_id(user_id: str) -> str:
+async def get_update_time_by_user_id(user_id: str) -> str:
     async with aiosqlite.connect(DB_PATH_FAMILIES) as db:
         cursor = await db.execute(
             "SELECT updated_at FROM families WHERE user_id = ?",

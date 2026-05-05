@@ -2,9 +2,9 @@
 .env
 
 # 数据库文件 (数据)
-app/database.db
 __pycache__/
 *.pyc
 *.pyo
 .DS_Store
 *.swp
+app/*.db
