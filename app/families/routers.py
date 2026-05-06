@@ -3,7 +3,6 @@ from typing import List, Optional
 
 from . import database
 from .models import FamilyDto, UpdateResponse
-from app.encryption import get_username_by_access_token
 from app.db_common import get_user_id_from_token
 
 router = APIRouter()
@@ -24,7 +23,8 @@ async def push_family_to_server(token: str, request: FamilyDto):
         if updated_time > request.updated_at: # timestamp conflict
             raise HTTPException(status_code=409, detail="服务器同步错误: 数据时间冲突")
         updated_data = await database.update_family(family_data)
-        
+    if not updated_data:
+        raise HTTPException(status_code=500, detail="服务器错误: 服务器发生了莫名其妙的错误。")        
     # 把新获得的时间戳返回给app
     return {"item_id" : updated_data["family_id"],
             "updated_at" : updated_data["updated_at"]}

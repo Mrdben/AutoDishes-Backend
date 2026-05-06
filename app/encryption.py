@@ -1,5 +1,5 @@
 from passlib.context import CryptContext
-from jose import jwt, JWTError  # 新增：JWT 相关
+from jose import jwt, JWTError, ExpiredSignatureError  # 新增：JWT 相关
 from datetime import datetime, timedelta # 新增：时间处理
 import os
 

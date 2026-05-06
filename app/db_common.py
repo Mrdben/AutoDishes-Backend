@@ -5,6 +5,7 @@ from fastapi import HTTPException
 
 DB_PATH_USERS = os.path.join(os.path.dirname(__file__), "users.db")
 DB_PATH_FAMILIES = os.path.join(os.path.dirname(__file__), "families.db")
+DB_PATH_ELDERS = os.path.join(os.path.dirname(__file__), "elders.db")
 
 def get_user_id_from_token(token):
     # 1, get username from token

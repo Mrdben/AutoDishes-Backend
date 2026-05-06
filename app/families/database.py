@@ -65,7 +65,7 @@ async def update_family(family_data: dict[str, any]) -> dict:
         return None
         
 
-async def get_family_by_user_id(user_id: str) -> Optional[dict[str, any]]:
+async def get_family_by_user_id(user_id: int) -> Optional[dict[str, any]]:
     async with aiosqlite.connect(DB_PATH_FAMILIES) as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute(
@@ -77,7 +77,7 @@ async def get_family_by_user_id(user_id: str) -> Optional[dict[str, any]]:
             return dict(row)
         return None
 
-async def get_update_time_by_user_id(user_id: str) -> str:
+async def get_update_time_by_user_id(user_id: int) -> str:
     async with aiosqlite.connect(DB_PATH_FAMILIES) as db:
         cursor = await db.execute(
             "SELECT updated_at FROM families WHERE user_id = ?",
