@@ -4,7 +4,6 @@ from .encryption import get_username_by_access_token
 from fastapi import HTTPException
 
 DB_PATH_USERS = os.path.join(os.path.dirname(__file__), "users.db")
-DB_PATH_FAMILIES = os.path.join(os.path.dirname(__file__), "families.db")
 DB_PATH_ELDERS = os.path.join(os.path.dirname(__file__), "elders.db")
 
 def get_user_id_from_token(token):

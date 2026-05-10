@@ -9,17 +9,18 @@ async def create_users_table(db):
             username TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
             phone_number TEXT UNIQUE NOT NULL,
+            family_name TEXT NOT NULL,
             refresh_token TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
     """)
 
-async def create_user(username: str, password_hash: str, phone_number: str):
+async def create_user(username: str, password_hash: str, phone_number: str, family_name: str):
     """创建用户"""
     async with aiosqlite.connect(DB_PATH_USERS) as db:
         await db.execute(
-            "INSERT INTO users (username, password_hash, phone_number) VALUES (?, ?, ?)",
-            (username, password_hash, phone_number,)
+            "INSERT INTO users (username, password_hash, phone_number, family_name) VALUES (?, ?, ?, ?)",
+            (username, password_hash, phone_number, family_name)
         )
         await db.commit()
 
@@ -27,7 +28,7 @@ async def get_user_by_username_or_phone_number(username: str):
     """根据用户名查询用户"""
     async with aiosqlite.connect(DB_PATH_USERS) as db:
         cursor = await db.execute(
-            "SELECT id, username, password_hash, phone_number, created_at FROM users WHERE username = ? OR phone_number = ?",
+            "SELECT id, username, password_hash, phone_number, family_name, created_at FROM users WHERE username = ? OR phone_number = ?",
             (username, username,)
         )
         row = await cursor.fetchone()
@@ -36,7 +37,8 @@ async def get_user_by_username_or_phone_number(username: str):
                     "username": row[1], 
                     "password_hash": row[2], 
                     "phone_number": row[3],
-                    "created_at": row[4]}
+                    "family_name": row[4],
+                    "created_at": row[5]}
         return None
 
 async def get_username_by_phone_number(phone_number: str):
@@ -93,7 +95,15 @@ async def update_user_phone_number(username: str, new_phone_number: str):
             (username,)
         )
         await db.commit()
-        
+       
+async def update_user_family_name(username: str, family_name: str):
+    async with aiosqlite.connect(DB_PATH_USERS) as db:
+        await db.execute(
+            "UPDATE users SET family_name = ? WHERE username = ?",
+            (family_name, username,)
+        )
+        await db.commit()
+
 async def delete_user(username: str):
     async with aiosqlite.connect(DB_PATH_USERS) as db:
         await db.execute("DELETE FROM users WHERE username = ?", (username,))

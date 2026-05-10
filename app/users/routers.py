@@ -9,7 +9,7 @@ from .models import UserLoginRequest, UserLoginResponse
 from .models import RefreshTokenRequest, RefreshTokenResponse
 from .models import GetUserByTokenResponse, DeleteUserRequest
 from .models import ChangePasswordRequest, UpdatePhoneNumberRequest
-from .models import ResetPasswordRequest
+from .models import ResetPasswordRequest, UpdateFamilyNameRequest
 from app.encryption import verify_password, create_token, get_username_by_access_token, password_hash
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 15 # Token 过期时间 (分钟)
@@ -62,7 +62,7 @@ async def register(request: UserRegisterRequest) -> dict:
         raise HTTPException(status_code=400, detail=f"手机号:{request.phone_number} 已被注册")
 
     phash = password_hash(request.password)
-    await database.create_user(request.username, phash, request.phone_number)
+    await database.create_user(request.username, phash, request.phone_number, request.family_name)
 
     return {"message": "注册成功！", "username": request.username}
 
@@ -124,6 +124,7 @@ async def get_current_user(token: str) -> dict:
     return {"id": user["id"],
             "username": user["username"],
             "phone_number": user["phone_number"],
+            "family_name": user["family_name"],
             "created_at": user["created_at"]}
 
 # 修改密码接口
@@ -143,7 +144,7 @@ async def reset_password(request: ResetPasswordRequest):
     user = await database.get_user_by_username_or_phone_number(request.username)
 
     if not user:
-        raise HTTPException(status_code=404, detail="该用户不存在。")
+        raise HTTPException(status_code=401, detail="该用户不存在。")
 
     if user["phone_number"] != request.phone_number:
         raise HTTPException(status_code=400, detail="用户信息不符。")
@@ -168,6 +169,15 @@ async def update_phone_number(token: str, request: UpdatePhoneNumberRequest):
     await database.update_user_phone_number(user["username"], request.new_phone_number)
 
     return {"message": "更新手机号成功！"}
+
+@router.post("/update-family-name")
+async def update_family_name(token: str, request: UpdateFamilyNameRequest):
+    user = await get_user_by_access_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="该用户不存在。")
+    await database.update_user_family_name(user["username"], request.family_name)
+    return {"message","更改家庭名称成功！"}
+
 
 # 注销账号接口
 @router.post("/delete-account")
