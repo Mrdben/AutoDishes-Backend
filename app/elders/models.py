@@ -4,9 +4,7 @@ from typing import List
 import json
 
 class ElderDto(BaseModel):
-    server_id: int
     elder_id: str
-    user_id: int
     name: str
     gender: str
     age: int
@@ -21,9 +19,7 @@ class ElderDto(BaseModel):
     @staticmethod
     def from_model(model: dict):
         elder = ElderDto(
-            server_id = model['server_id'],
             elder_id = model['elder_id'],
-            user_id = model['user_id'],
             name = model['name'],
             gender = model['gender'],
             age = model['age'],
@@ -33,16 +29,24 @@ class ElderDto(BaseModel):
             taste_preferences = json.loads(model['taste_preferences']),
             is_deleted = bool(model['is_deleted']),
             updated_at = model['updated_at'],
-            created_at = model['updated_at']
+            created_at = model['created_at']
         )
         return elder
 
-class PullElderRequest(BaseModel):
-    server_id: int
-    
-class UpdateResponse(BaseModel) :
-    item_id: int
-    updated_at: str
-
 class ElderListDto(BaseModel):
     elder_list: list[ElderDto]
+
+class UpdateInfo(BaseModel):
+    elder_id: str
+    updated_at: str
+
+    @staticmethod
+    def from_model(model: dict):
+        info = UpdateInfo(
+            elder_id = model['elder_id'],
+            updated_at = model['updated_at']
+        )
+        return info
+
+class UpdateInfoList(BaseModel):
+    info_list: list[UpdateInfo]

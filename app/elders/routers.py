@@ -1,56 +1,52 @@
 from fastapi import APIRouter, HTTPException
 from typing import List, Optional
 from . import database
-from .models import ElderDto, UpdateResponse, PullElderRequest, ElderListDto
+from .models import ElderDto, ElderListDto, UpdateInfo, UpdateInfoList
 from app.db_common import get_user_id_from_token
 
 router = APIRouter()
 
-@router.post("/push", response_model=UpdateResponse)
-async def push_elder_to_server(token: str, request: ElderDto):
+@router.post("/push", response_model=UpdateInfoList)
+async def push_elder_to_server(token: str, request: ElderListDto):
+# 从app更新服务器数据，做加法，看哪些可以更新，加到返回数据
     user_id = await get_user_id_from_token(token)
-    if user_id != request.user_id:
-        raise HTTPException(status_code=409, detail="用户标识冲突")
+    update_info_list: list[UpdateInfo] = []
+    for elder_dto in request.elder_list:
+        elder_model = elder_dto.model_dump()
+        # get elder from user_id
+        server_id = await database.get_server_id_by_user_and_elder_ids(user_id, elder_dto.elder_id) 
+        if not server_id:  # user exists, but no elder
+            # insert new elder record
+            updated_data = await database.insert_elder(user_id, elder_model)
+        else: # elder exists, check timestamp
+            updated_time = await database.get_updated_time_by_server_id(server_id)
+            if not updated_time:
+                raise HTTPException(status_code=500, detail=f"服务器错误: 无法获取家庭成员更新时间。 server_id = {server_id}")
+            if elder_dto.updated_at >= updated_time:
+                updated_data = await database.update_elder(server_id, elder_model)
+            else:
+                updated_data = None
+        if updated_data:
+            update_info_list.append(UpdateInfo.from_model(updated_data)) # 把完成插入或更新的数据信息，加入返回列表
 
-    # get elder from user_id
-    elder_data = request.model_dump()
-    server_id = await database.get_server_id_by_user_and_elder_ids(user_id, request.elder_id) # no need to get whole structure
-    if not server_id:  # user exists, but no elder
-        # insert new elder record
-        updated_data = await database.insert_elder(elder_data)
-    else: # elder exists, check timestamp
-        if server_id != request.server_id:
-            raise HTTPException(status_code=409, detail="服务器同步错误: 家庭成员注册编号(server_id)冲突。")
-        updated_time = await database.get_updated_time_by_server_id(server_id)
-        if not updated_time:
-            raise HTTPException(status_code=500, detail="服务器错误: 无法获取家庭成员更新时间。")
-        if updated_time > request.updated_at: # timestamp conflict
-            raise HTTPException(status_code=409, detail="服务器同步错误: 数据时间冲突")
-        updated_data = await database.update_elder(elder_data)
-    if not updated_data:
-        raise HTTPException(status_code=500, detail=f"服务器错误: 服务器发生了莫名其妙的错误。")
-        
-    # 把新获得的时间戳返回给app
-    return {"item_id" : updated_data["server_id"],
-            "updated_at" : updated_data["updated_at"]}
+    return UpdateInfoList(info_list = update_info_list)
 
-@router.get("/pull", response_model=ElderDto)
-async def get_elder_from_server(token: str, request: PullElderRequest) -> dict :
+@router.post("/pull", response_model=ElderListDto)
+async def get_elder_from_server(token: str, request: UpdateInfoList) -> dict :
+# 从服务器更新app数据，做减法，先获取后端数据库全量数据，再看哪些不用更新
+    elder_list_dto: list[ElderDto] = []
+    info_map = build_info_map(request)
     user_id = await get_user_id_from_token(token)
-    elder_data = await database.get_elder_by_server_id(request.server_id)
-    if not elder_data:
-        raise HTTPException(status_code=404, detail="没有找到该用户的elder数据")
-    if elder_data['user_id'] != user_id:
-        raise HTTPException(status_code=409, detail="用户标识冲突")
-    return ElderDto.from_model(elder_data)
+    all_elders = await database.get_elders_by_user_id(user_id)
+    for elder in all_elders:
+        app_updated_at = info_map.get(elder['elder_id'])
+        if not app_updated_at:   # not included in request list
+            if not elder['is_deleted']:
+                elder_list_dto.append(ElderDto.from_model(elder))
+        elif app_updated_at < elder['updated_at']:
+            elder_list_dto.append(ElderDto.from_model(elder))
 
-@router.get("/batch_pull", response_model=ElderListDto)
-async def batch_pull_elder_from_server(token: str) -> ElderListDto:
-    user_id = await get_user_id_from_token(token)
-    elder_data = await database.pull_elders_by_user_id(user_id)
-    result = []
-    for elder in elder_data:
-        elder = ElderDto.from_model(elder)
-        result.append(elder)
-    return ElderListDto(elder_list = result)
+    return ElderListDto(elder_list = elder_list_dto)
 
+def build_info_map(info_list: UpdateInfoList) -> dict[str, str]:
+    return {info.elder_id: info.updated_at for info in info_list.info_list}

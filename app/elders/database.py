@@ -26,7 +26,7 @@ async def create_elders_table(db):
         )
     """)
 
-async def insert_elder(elder_data: dict[str, any]) -> dict:
+async def insert_elder(user_id: int, elder_data: dict[str, any]) -> dict:
     async with aiosqlite.connect(DB_PATH_ELDERS) as db:
         await db.execute(
             """
@@ -37,7 +37,7 @@ async def insert_elder(elder_data: dict[str, any]) -> dict:
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
             elder_data['elder_id'],
-            elder_data['user_id'],
+            user_id,
             elder_data['name'],
             elder_data['gender'],
             elder_data['age'],
@@ -50,21 +50,21 @@ async def insert_elder(elder_data: dict[str, any]) -> dict:
         )
         await db.commit()
         cursor = await db.execute(
-            "SELECT server_id, updated_at FROM elders WHERE user_id = ? AND elder_id = ?",
-            (elder_data['user_id'], elder_data['elder_id'])
+            "SELECT updated_at FROM elders WHERE user_id = ? AND elder_id = ?",
+            (user_id, elder_data['elder_id'])
         )
         row = await cursor.fetchone()
         if row:
-            return {"server_id" : row[0],
-                    "updated_at" : row[1]}
+            return {"elder_id" : elder_data['elder_id'],
+                    "updated_at" : row[0]}
         return None
 
-async def update_elder(elder_data: dict[str, any]) -> dict:
+async def update_elder(server_id: int, elder_data: dict[str, any]) -> dict:
     async with aiosqlite.connect(DB_PATH_ELDERS) as db:
         await db.execute(
             """
             UPDATE elders
-            SET name = ?, 
+            SET name = ?,
                 gender = ?,
                 age = ?,
                 allergens = ?,
@@ -83,31 +83,18 @@ async def update_elder(elder_data: dict[str, any]) -> dict:
             json.dumps(elder_data['dietary_restriction']),
             json.dumps(elder_data['taste_preferences']),
             1 if elder_data['is_deleted'] else 0,
-            elder_data['server_id']
+            server_id
             )
         )
         await db.commit()
         cursor = await db.execute(
-            "SELECT server_id, updated_at FROM elders WHERE server_id = ?",
-            (elder_data['server_id'],)
-        )
-        row = await cursor.fetchone()
-        if row:
-            return {"server_id" : row[0],
-                    "updated_at" : row[1]}
-        return None
-
-
-async def get_elder_by_server_id(server_id: int) -> Optional[dict[str, any]]:
-    async with aiosqlite.connect(DB_PATH_ELDERS) as db:
-        db.row_factory = aiosqlite.Row
-        cursor = await db.execute(
-            "SELECT * FROM elders WHERE server_id = ?",
+            "SELECT updated_at FROM elders WHERE server_id = ?",
             (server_id,)
         )
         row = await cursor.fetchone()
         if row:
-            return dict(row)
+            return {"elder_id" : elder_data['elder_id'],
+                    "updated_at" : row[0]}
         return None
 
 async def get_updated_time_by_server_id(server_id: int) -> str:
@@ -132,7 +119,7 @@ async def get_server_id_by_user_and_elder_ids(user_id: int, elder_id: str) -> in
             return row[0]
         return None
 
-async def pull_elders_by_user_id(user_id: int) -> list[dict[str, any]]:
+async def get_elders_by_user_id(user_id: int) -> list[dict[str, any]]:
     async with aiosqlite.connect(DB_PATH_ELDERS) as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute(
@@ -144,4 +131,4 @@ async def pull_elders_by_user_id(user_id: int) -> list[dict[str, any]]:
         for row in rows:
             result.append(dict(row))
         return result
-  
+
