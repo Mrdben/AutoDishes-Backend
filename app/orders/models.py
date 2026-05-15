@@ -20,7 +20,7 @@ class OrderDto(BaseModel):
             meal_type = model['meal_type'],
             meal_time = model['meal_time'],
             elder_ids = json.loads(model['elder_ids']),
-            dish_ids = json.loads(model['elder_ids']),
+            dish_ids = json.loads(model['dish_ids']),
             is_deleted = bool(model['is_deleted']),
             updated_at = model['updated_at'],
             created_at = model['created_at']
