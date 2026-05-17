@@ -19,6 +19,7 @@ async def create_dishes_table(db):
             ingredients TEXT NOT NULL,
             recipe TEXT NOT NULL,
             favorite_level INTEGER NOT NULL,
+            comments TEXT NOT NULL,
             is_deleted INTEGER NOT NULL DEFAULT 0,
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -33,8 +34,8 @@ async def insert_dish(user_id: int, dish_data: dict[str, any]) -> dict:
             INSERT INTO dishes
             (dish_id, user_id, name, taste, dish_type, 
             cuisine, ingredients, recipe, favorite_level,
-            is_deleted)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            comments, is_deleted)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
             dish_data['dish_id'],
             user_id,
@@ -45,6 +46,7 @@ async def insert_dish(user_id: int, dish_data: dict[str, any]) -> dict:
             dish_data['ingredients'],
             dish_data['recipe'],
             dish_data['favorite_level'],
+            dish_data['comments'],
             1 if dish_data['is_deleted'] else 0
             )
         )
@@ -71,6 +73,7 @@ async def update_dish(server_id: int, dish_data: dict[str, any]) -> dict:
                 ingredients = ?,
                 recipe = ?,
                 favorite_level = ?,
+                comments = ?,
                 is_deleted = ?,
                 updated_at = CURRENT_TIMESTAMP
             WHERE server_id = ?
@@ -82,6 +85,7 @@ async def update_dish(server_id: int, dish_data: dict[str, any]) -> dict:
             dish_data['ingredients'],
             dish_data['recipe'],
             dish_data['favorite_level'],
+            dish_data['comments'],
             1 if dish_data['is_deleted'] else 0,
             server_id
             )

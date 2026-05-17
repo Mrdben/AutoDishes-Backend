@@ -12,6 +12,7 @@ class DishDto(BaseModel):
     ingredients: str
     recipe: str
     favorite_level: int
+    comments: str
     is_deleted: bool = False
     updated_at: str
     created_at: str
@@ -27,6 +28,7 @@ class DishDto(BaseModel):
             ingredients = model['ingredients'],
             recipe = model['recipe'],
             favorite_level = model['favorite_level'],
+            comments = model['comments'],
             is_deleted = bool(model['is_deleted']),
             updated_at = model['updated_at'],
             created_at = model['created_at']
