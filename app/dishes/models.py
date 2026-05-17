@@ -53,3 +53,30 @@ class UpdateInfo(BaseModel):
 class UpdateInfoList(BaseModel):
     info_list: list[UpdateInfo]
 
+class DishType(Enum):
+    COLD_MEAT = "冷荤"
+    COLD_VEGGIE = "冷素"
+    WARM_MEAT = "热荤"
+    WARM_VEGGIE = "热素"
+    SOUP = "汤"
+    STAPLE = "主食"
+    SNACK = "零食"
+    OTHER = "其他类别"
+    @classmethod
+    def _missing_(cls, value):
+        return cls.OTHER
+
+class CuisineType(Enum):
+    SHANDONG = "鲁菜"
+    SICHUAN = "川菜"
+    CANTONESE = "粤菜"
+    HUNAN = "湘菜"
+    ANHUI = "徽菜"
+    BEIJING = "京菜"
+    SHANGHAI = "沪菜"
+    DONGBEI = "东北菜"
+    FAMILY = "家常菜"
+    OTHER = "其他菜系"
+    @classmethod
+    def _missing_(cls, value):
+        return cls.OTHER
