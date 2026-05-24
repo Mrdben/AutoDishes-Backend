@@ -8,12 +8,24 @@ ALIYUN_QWEN_BASE_URL = os.getenv("ALIYUN_QWEN_BASE_URL")
 ALIYUN_QWEN_API_KEY = os.getenv("ALIYUN_QWEN_API_KEY")
 ALIYUN_QWEN_MODEL = os.getenv("ALIYUN_QWEN_MODEL")
 
-def aliyun_qwen_api(elder_count: int, meal_type: str, elder_info: str, order_hist: str):
+def aliyun_qwen_api(elder_count: int, 
+                    meal_type: str, 
+                    elder_info: str, 
+                    order_hist: str,
+                    selected_dishes: str,
+                    user_prompt: str,
+                    previous_replies: str):
     system_prompt = make_system_prompt()
-    user_prompt = make_user_prompt(elder_count, meal_type, elder_info, order_hist)
-    return aliyun_qwen_api_call(system_prompt, user_prompt)
+    user_prompt = make_user_prompt(elder_count, 
+                                   meal_type, 
+                                   elder_info, 
+                                   order_hist,
+                                   selected_dishes,
+                                   user_prompt)
+    assistant_prompt = make_assistant_prompt(previous_replies)
+    return aliyun_qwen_api_call(system_prompt, user_prompt, assistant_prompt)
 
-def aliyun_qwen_api_call(system_prompt, user_prompt):
+def aliyun_qwen_api_call(system_prompt, user_prompt, assistant_prompt):
     # 初始化客户端
     client = OpenAI(
         # 从环境变量中读取 API Key（推荐）
@@ -25,11 +37,12 @@ def aliyun_qwen_api_call(system_prompt, user_prompt):
     start_time = time.perf_counter()
     completion = client.chat.completions.create(
         model = ALIYUN_QWEN_MODEL,  # 指定调用的模型，这里以 qwen-plus 为例
-        messages=[
+        messages = [
             {'role': 'system', 'content': system_prompt},
-            {'role': 'user', 'content': user_prompt}
+            {'role': 'user', 'content': user_prompt},
+            {'role': 'assistant', 'content': assistant_prompt}
         ],
-        temperature = 0.1,
+        temperature = 0.2,
         response_format = {"type": "json_object"}
     )
     end_time = time.perf_counter()
@@ -50,14 +63,23 @@ def format_converter(completion) -> dict:
         'model_response': completion.choices[0].message.content
     }
 
-def make_user_prompt(elder_count: int, meal_type: str, elder_info: str, order_hist: str):
+def make_user_prompt(elder_count: int, 
+                     meal_type: str, 
+                     elder_info: str, 
+                     order_hist: str,
+                     selected_dishes: str,
+                     user_prompt: str):
     user_prompt = f"""
     请为以下{elder_count}位用餐者推荐合适份量的[{meal_type}]，包括主食。
     {magic_words2}
     【用餐者信息】
     {elder_info}
-    【饮食历史】
+    【饮食历史】（请注意推荐餐品与饮食历史的差异化）
     {order_hist}
+    【本次已经选择的餐品】（请注意不要推荐重复的餐品）
+    {selected_dishes}
+    【用户输入需求】（请尽量满足）
+    今天我想吃：{user_prompt}
     """
     return user_prompt
 
@@ -68,7 +90,7 @@ def make_system_prompt():
     你必须严格且仅输出一个合法的 JSON 对象，不要包含任何 ```json代码块标记或额外的解释性文字。
     JSON 必须是一个数组，包含以下结构的菜品对象：
     [{
-        "name": "字符串，必填，推荐的菜品名称",
+        "name": "字符串，必填，推荐的菜品名称，不要加特征描述（特征描述请放入taste或comments字段）",
         "taste": "字符串，必填，菜品的口味描述",
         "dish_type": "字符串，必填，菜品的类型",
         "cuisine": "字符串，必填，菜品的菜系",
@@ -91,3 +113,10 @@ def make_system_prompt():
     }]
     """
     return system_prompt
+
+def make_assistant_prompt(previous_replies: str):
+    assistant_prompt = f"""
+    【本次推荐的历史回复信息】（请避免推荐同样餐品）
+    {previous_replies}
+    """
+    return assistant_prompt

@@ -5,3 +5,6 @@ class AiChefRequest(BaseModel):
     meal_type: str
     elder_info: str
     order_hist: str
+    selected_dishes: str
+    user_prompt: str
+    refresh_count: int

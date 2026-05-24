@@ -47,3 +47,17 @@ async def insert_aichat(user_id: int, chat_data: dict[str, any]):
             )
         )
         await db.commit()
+
+async def get_previous_replies(user_id: int, count: int) -> str: 
+    async with aiosqlite.connect(DB_PATH_AICHATS) as db:
+        cursor = await db.execute(
+            """
+            SELECT model_response FROM aichats WHERE user_id = ?
+            ORDER BY server_id DESC LIMIT ?
+            """, (
+            user_id,
+            count
+            )
+        )
+        rows = await cursor.fetchall()
+        return "\n".join(row[0] for row in rows)    
