@@ -5,6 +5,7 @@ class UserRegisterRequest(BaseModel):
     username: str
     password: str
     phone_number: str
+    validation_code: str
     family_name: str
     
 class UserRegisterResponse(BaseModel):
@@ -41,16 +42,19 @@ class ChangePasswordRequest(BaseModel):
     old_password: str
     phone_number: str
     new_password: str
+    validation_code: str
 
 class ResetPasswordRequest(BaseModel):
     username: str
     phone_number: str
     new_password: str
+    validation_code: str
 
 class UpdatePhoneNumberRequest(BaseModel):
     password: str
     old_phone_number: str
     new_phone_number: str
+    validation_code: str
 
 class UpdateFamilyNameRequest(BaseModel):
     family_name: str
@@ -58,3 +62,13 @@ class UpdateFamilyNameRequest(BaseModel):
 class DeleteUserRequest(BaseModel):
     password: str
     phone_number: str
+    validation_code: str
+
+class ValidationSMSRequest(BaseModel):
+    phone_number: str
+    scene: str
+
+class ValidationSMSResponse(BaseModel):
+    success: bool
+    message: str
+    code: int

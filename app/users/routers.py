@@ -4,12 +4,14 @@ from fastapi import APIRouter, HTTPException, Depends, status
 from datetime import timedelta # 新增：时间处理
 
 from . import database
+from .aliyun_sms_verify import Aliyun_SMS_Verify
 from .models import UserRegisterRequest, UserRegisterResponse
 from .models import UserLoginRequest, UserLoginResponse
 from .models import RefreshTokenRequest, RefreshTokenResponse
 from .models import GetUserByTokenResponse, DeleteUserRequest
 from .models import ChangePasswordRequest, UpdatePhoneNumberRequest
 from .models import ResetPasswordRequest, UpdateFamilyNameRequest
+from .models import ValidationSMSRequest, ValidationSMSResponse
 from app.encryption import verify_password, create_token, get_username_by_access_token, password_hash
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 15 # Token 过期时间 (分钟)
@@ -57,9 +59,9 @@ async def register(request: UserRegisterRequest) -> dict:
     if existing_user:
         raise HTTPException(status_code=400, detail=f"用户名:{request.username} 已存在")
 
-    existing_user = await database.get_username_by_phone_number(request.phone_number)
-    if existing_user:
-        raise HTTPException(status_code=400, detail=f"手机号:{request.phone_number} 已被注册")
+    await phone_number_verify(request.phone_number)
+
+    sms_code_verify(request.phone_number, request.validation_code)
 
     phash = password_hash(request.password)
     await database.create_user(request.username, phash, request.phone_number, request.family_name)
@@ -132,7 +134,7 @@ async def get_current_user(token: str) -> dict:
 async def change_password(token: str, request: ChangePasswordRequest):
     # 1. 验证 Token
     user = await authenticate_user_by_password_token_phonenumber(token, request.old_password, request.phone_number)
-
+    sms_code_verify(request.phone_number, request.validation_code)
     # 4. 更新新密码
     new_hash = password_hash(request.new_password)
     await database.update_user_password(user["username"], new_hash)
@@ -149,6 +151,7 @@ async def reset_password(request: ResetPasswordRequest):
     if user["phone_number"] != request.phone_number:
         raise HTTPException(status_code=400, detail="用户信息不符。")
 
+    sms_code_verify(request.phone_number, request.validation_code)
     new_hash = password_hash(request.new_password)
     await database.update_user_password(request.username, new_hash)
 
@@ -161,9 +164,8 @@ async def update_phone_number(token: str, request: UpdatePhoneNumberRequest):
     user = await authenticate_user_by_password_token_phonenumber(token, request.password, request.old_phone_number)
 
     # 2, 检查新号码是否已经被注册
-    existing_user = await database.get_username_by_phone_number(request.new_phone_number)
-    if existing_user:
-        raise HTTPException(status_code=400, detail=f"手机号:{request.new_phone_number} 已被注册")
+    await phone_number_verify(request.new_phone_number)
+    sms_code_verify(request.new_phone_number, request.validation_code)
 
     # 4. 更新手机号
     await database.update_user_phone_number(user["username"], request.new_phone_number)
@@ -178,15 +180,31 @@ async def update_family_name(token: str, request: UpdateFamilyNameRequest):
     await database.update_user_family_name(user["username"], request.family_name)
     return {"message","更改家庭名称成功！"}
 
-
 # 注销账号接口
 @router.post("/delete-account")
 async def delete_account(token: str, request: DeleteUserRequest):
     # 1. 验证 Token, password, phonenumber
     user = await authenticate_user_by_password_token_phonenumber(token, request.password, request.phone_number)
-
+    sms_code_verify(request.phone_number, request.validation_code)
+    
     # 2. 删除用户
     await database.delete_user(user["username"])
 
     return {"message": "账号已注销"}
 
+# 获取短信验证码
+@router.post("/code-request", response_model=ValidationSMSResponse)
+async def sms_code_request(request: ValidationSMSRequest) -> dict:
+    if request.scene in {"register","phone"}:
+        await phone_number_verify(request.phone_number)
+    return Aliyun_SMS_Verify.send_request(request.phone_number, request.scene)
+
+def sms_code_verify(phone_number: str, verify_code: str):
+    result = Aliyun_SMS_Verify.verfiy_request(phone_number, verify_code)
+    if not result["success"]:
+        raise HTTPException(status_code=result["code"], detail=result["message"])
+    
+async def phone_number_verify(phone_number: str):
+    existing_user = await database.get_username_by_phone_number(phone_number)
+    if existing_user:
+        raise HTTPException(status_code=400, detail=f"手机号:{phone_number} 已被注册")
