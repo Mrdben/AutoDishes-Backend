@@ -32,9 +32,14 @@ async def authenticate_user_by_password(username: str, password: str):
     return user
 
 async def get_user_by_access_token(token: str):
-    username, error_message = get_username_by_access_token(token)
-    if not username:
+    username, refresh, error_message = get_username_by_access_token(token)
+    if (not username) or (not refresh):
         raise HTTPException(status_code=401, detail=error_message)
+        
+    refresh_username = await database.get_username_by_refresh_token(refresh)
+    if (not refresh_username) or (refresh_username != username):
+        raise HTTPException(status_code=401, detail="刷新令牌无效或已过期")
+
     # 从数据库查用户信息
     return await database.get_user_by_username_or_phone_number(username)
 
@@ -79,17 +84,17 @@ async def login_for_access_token(user_login: UserLoginRequest) -> dict:
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # 2. 生成 Access Token (有效期短，比如 15 分钟，方便测试你可以设短点)
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_token(user["username"], expires_delta=access_token_expires)
-
-    # 3. 生成 Refresh Token (有效期长，比如 7 天)
+    # 2. 生成 Refresh Token (有效期长，比如 7 天)
     # 注意：Refresh Token 我们生成一个随机字符串，而不是 JWT，这样更安全
     refresh_token = secrets.token_urlsafe(32)
 
-    # 4. 将 Refresh Token 存入数据库 (绑定到该用户)
+    # 3. 将 Refresh Token 存入数据库 (绑定到该用户)
     await database.write_refresh_token_to_user(user["username"], refresh_token)
-
+    
+    # 4. 生成 Access Token (有效期短，比如 15 分钟，方便测试你可以设短点)
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_token(user["username"], refresh_token, expires_delta=access_token_expires)
+    
     # 5. 返回两个 Token
     return {
         "access_token": access_token,
@@ -110,7 +115,7 @@ async def refresh_access_token(request: RefreshTokenRequest) -> dict:
 
     # 3. 如果有效，生成新的 Access Token
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    new_access_token = create_token(username, expires_delta=access_token_expires)
+    new_access_token = create_token(username, request.refresh_token, expires_delta=access_token_expires)
 
     return {
         "access_token": new_access_token,
@@ -186,7 +191,7 @@ async def delete_account(token: str, request: DeleteUserRequest):
     # 1. 验证 Token, password, phonenumber
     user = await authenticate_user_by_password_token_phonenumber(token, request.password, request.phone_number)
     sms_code_verify(request.phone_number, request.validation_code)
-    
+
     # 2. 删除用户
     await database.delete_user(user["username"])
 
@@ -203,8 +208,9 @@ def sms_code_verify(phone_number: str, verify_code: str):
     result = Aliyun_SMS_Verify.verfiy_request(phone_number, verify_code)
     if not result["success"]:
         raise HTTPException(status_code=result["code"], detail=result["message"])
-    
+
 async def phone_number_verify(phone_number: str):
     existing_user = await database.get_username_by_phone_number(phone_number)
     if existing_user:
         raise HTTPException(status_code=400, detail=f"手机号:{phone_number} 已被注册")
+
