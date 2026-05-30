@@ -126,7 +126,7 @@ async def refresh_access_token(request: RefreshTokenRequest) -> dict:
 async def get_current_user(token: str) -> dict:
     user = await get_user_by_access_token(token)
     if not user:
-        raise HTTPException(status_code=401, detail="用户不存在")
+        raise HTTPException(status_code=401, detail="用户不存在，或已经登出。")
 
     return {"id": user["id"],
             "username": user["username"],
@@ -181,7 +181,7 @@ async def update_phone_number(token: str, request: UpdatePhoneNumberRequest):
 async def update_family_name(token: str, request: UpdateFamilyNameRequest):
     user = await get_user_by_access_token(token)
     if not user:
-        raise HTTPException(status_code=401, detail="该用户不存在。")
+        raise HTTPException(status_code=401, detail="该用户不存在，或已经登出。")
     await database.update_user_family_name(user["username"], request.family_name)
     return {"message","更改家庭名称成功！"}
 
@@ -214,3 +214,8 @@ async def phone_number_verify(phone_number: str):
     if existing_user:
         raise HTTPException(status_code=400, detail=f"手机号:{phone_number} 已被注册")
 
+@router.get("/alive")
+async def user_alive(token: str):
+    user = await get_user_by_access_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="用户不存在，或已经登出。")
