@@ -27,14 +27,14 @@ async def startup_event():
     await init_database()
 
 # --------------- 挂载 auth 模块路由 ---------------
-app.include_router(users_router, prefix="/users", tags=["users"])
-app.include_router(elders_router, prefix="/elders", tags=["elders"])
-app.include_router(dishes_router, prefix="/dishes", tags=["dishes"])
-app.include_router(orders_router, prefix="/orders", tags=["orders"])
-app.include_router(aichats_router, prefix="/aichats", tags=["aichats"])
+app.include_router(users_router, prefix="/api/users", tags=["users"])
+app.include_router(elders_router, prefix="/api/elders", tags=["elders"])
+app.include_router(dishes_router, prefix="/api/dishes", tags=["dishes"])
+app.include_router(orders_router, prefix="/api/orders", tags=["orders"])
+app.include_router(aichats_router, prefix="/api/aichats", tags=["aichats"])
 
 # --------------- 根接口（测试用）---------------
-@app.get("/")
+@app.get("/api/")
 def home():
     return {"message": "Backend API is running"}
 
