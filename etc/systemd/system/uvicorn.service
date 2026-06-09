@@ -1,0 +1,18 @@
+[Unit]
+Description=Uvicorn FastAPI Service
+After=network.target
+
+[Service]
+# 运行服务的用户，建议使用非 root 用户
+User=www-data 
+Group=www-data 
+# 您的项目代码所在目录
+WorkingDirectory=/opt/autodishes-backend
+# 您的虚拟环境路径
+# 核心启动命令：指定了生产级别的 worker 数量、绑定地址以及自定义的日志配置文件
+ExecStart=/usr/local/bin/uvicorn app.main:app --host 0.0.0.0 --port 8080 --log-config uvicorn_log.json
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

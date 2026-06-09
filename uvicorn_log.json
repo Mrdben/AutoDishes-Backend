@@ -1,0 +1,46 @@
+{
+    "version": 1,
+    "disable_existing_loggers": false,
+    "formatters": {
+        "default": {
+            "()": "uvicorn.logging.DefaultFormatter",
+            "fmt": "%(asctime)s - %(levelprefix)s %(message)s"
+        },
+        "access": {
+            "()": "uvicorn.logging.AccessFormatter",
+            "fmt": "%(asctime)s - %(levelprefix)s %(client_addr)s - '%(request_line)s' %(status_code)s"
+        }
+    },
+    "handlers": {
+        "default_file": {
+            "formatter": "default",
+            "class": "logging.handlers.TimedRotatingFileHandler",
+            "filename": "/var/log/uvicorn_error.log",
+            "when": "midnight",
+            "encoding": "utf-8",
+            "backupCount": 7,
+            "level": "WARNING" 
+        },
+        "access_file": {
+            "formatter": "access",
+            "class": "logging.handlers.TimedRotatingFileHandler",
+            "filename": "/var/log/uvicorn_access.log",
+            "when": "midnight",
+            "encoding": "utf-8",
+            "backupCount": 7,
+            "level": "INFO"
+        }
+    },
+    "loggers": {
+        "uvicorn.error": {
+            "handlers": ["default_file"],
+            "level": "WARNING",
+            "propagate": 0
+        },
+        "uvicorn.access": {
+            "handlers": ["access_file"],
+            "level": "INFO",
+            "propagate": 0
+        }
+    }
+}
