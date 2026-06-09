@@ -112,7 +112,7 @@ async def delete_user(username: str):
             (username,)
         )
         await db.execute(
-            "UPDATE users SET refresh_token = NULL WHERE AND username = ?",
+            "UPDATE users SET refresh_token = NULL WHERE username = ?",
             (username,)
         )
         await db.commit()
