@@ -8,7 +8,7 @@ async def create_users_table(db):
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
-            phone_number TEXT UNIQUE NOT NULL,
+            phone_number TEXT NOT NULL,
             family_name TEXT NOT NULL,
             refresh_token TEXT,
             is_deleted INTEGER NOT NULL DEFAULT 0,
