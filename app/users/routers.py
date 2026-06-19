@@ -1,6 +1,6 @@
 import os
 import secrets
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status, Request
 from datetime import timedelta # 新增：时间处理
 
 from . import database
@@ -35,7 +35,7 @@ async def get_user_by_access_token(token: str):
     username, refresh, error_message = get_username_by_access_token(token)
     if (not username) or (not refresh):
         raise HTTPException(status_code=401, detail=error_message)
-        
+
     refresh_username = await database.get_username_by_refresh_token(refresh)
     if (not refresh_username) or (refresh_username != username):
         raise HTTPException(status_code=401, detail="刷新令牌无效或已过期")
@@ -59,7 +59,7 @@ async def authenticate_user_by_password_token_phonenumber(token: str, password: 
 
 # --- 接口 ---
 @router.post("/register", response_model=UserRegisterResponse)
-async def register(request: UserRegisterRequest) -> dict:
+async def register(raw_request: Request, request: UserRegisterRequest) -> dict:
     existing_user = await database.get_user_by_username_or_phone_number(request.username)
     if existing_user:
         raise HTTPException(status_code=400, detail=f"用户名:{request.username} 已存在")
@@ -69,12 +69,16 @@ async def register(request: UserRegisterRequest) -> dict:
     sms_code_verify(request.phone_number, request.validation_code)
 
     phash = password_hash(request.password)
-    await database.create_user(request.username, phash, request.phone_number, request.family_name)
+    await database.create_user(request.username, 
+                               phash, 
+                               request.phone_number, 
+                               request.family_name,
+                               raw_request.client.host)
 
     return {"message": "注册成功！", "username": request.username}
 
 @router.post("/login", response_model=UserLoginResponse)
-async def login_for_access_token(user_login: UserLoginRequest) -> dict:
+async def login_for_access_token(raw_request: Request, user_login: UserLoginRequest) -> dict:
     # 1. 验证用户
     user = await authenticate_user_by_password(user_login.username, user_login.password)
     if not user:
@@ -90,11 +94,12 @@ async def login_for_access_token(user_login: UserLoginRequest) -> dict:
 
     # 3. 将 Refresh Token 存入数据库 (绑定到该用户)
     await database.write_refresh_token_to_user(user["username"], refresh_token)
-    
+    await database.upate_last_refresh(user["username"], raw_request.client.host)
+
     # 4. 生成 Access Token (有效期短，比如 15 分钟，方便测试你可以设短点)
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_token(user["username"], refresh_token, expires_delta=access_token_expires)
-    
+
     # 5. 返回两个 Token
     return {
         "access_token": access_token,
@@ -103,7 +108,7 @@ async def login_for_access_token(user_login: UserLoginRequest) -> dict:
     }
 
 @router.post("/refresh", response_model=RefreshTokenResponse)
-async def refresh_access_token(request: RefreshTokenRequest) -> dict:
+async def refresh_access_token(raw_request: Request, request: RefreshTokenRequest) -> dict:
     # 1. 验证前端传来的 refresh_token 是否为空
     if not request.refresh_token:
         raise HTTPException(status_code=401, detail="缺少刷新令牌")
@@ -116,6 +121,7 @@ async def refresh_access_token(request: RefreshTokenRequest) -> dict:
     # 3. 如果有效，生成新的 Access Token
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     new_access_token = create_token(username, request.refresh_token, expires_delta=access_token_expires)
+    await database.upate_last_refresh(username, raw_request.client.host)
 
     return {
         "access_token": new_access_token,
@@ -219,3 +225,4 @@ async def user_alive(token: str):
     user = await get_user_by_access_token(token)
     if not user:
         raise HTTPException(status_code=401, detail="用户不存在，或已经登出。")
+

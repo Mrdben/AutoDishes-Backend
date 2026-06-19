@@ -12,16 +12,19 @@ async def create_users_table(db):
             family_name TEXT NOT NULL,
             refresh_token TEXT,
             is_deleted INTEGER NOT NULL DEFAULT 0,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            created_ip TEXT DEFAULT "0.0.0.0",
+            last_refresh TEXT DEFAULT CURRENT_TIMESTAMP,
+            refresh_ip TEXT DEFAULT "0.0.0.0"
         )
     """)
 
-async def create_user(username: str, password_hash: str, phone_number: str, family_name: str):
+async def create_user(username: str, password_hash: str, phone_number: str, family_name: str, created_ip: str):
     """创建用户"""
     async with aiosqlite.connect(DB_PATH_USERS) as db:
         await db.execute(
-            "INSERT INTO users (username, password_hash, phone_number, family_name) VALUES (?, ?, ?, ?)",
-            (username, password_hash, phone_number, family_name)
+            "INSERT INTO users (username, password_hash, phone_number, family_name, created_ip) VALUES (?, ?, ?, ?, ?)",
+            (username, password_hash, phone_number, family_name, created_ip)
         )
         await db.commit()
 
@@ -114,6 +117,14 @@ async def delete_user(username: str):
         await db.execute(
             "UPDATE users SET refresh_token = NULL WHERE username = ?",
             (username,)
+        )
+        await db.commit()
+
+async def upate_last_refresh(username: str, refresh_ip: str):
+    async with aiosqlite.connect(DB_PATH_USERS) as db:
+        await db.execute(
+            "UPDATE users SET last_refresh = CURRENT_TIMESTAMP, refresh_ip = ? WHERE username = ?",
+            (refresh_ip, username,)
         )
         await db.commit()
 
