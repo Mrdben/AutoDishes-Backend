@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>使用教程 | 暖心厨房 AutoDishes</title>
+    <link rel="icon" type="image/png" href="images/app-icon-64.png">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                         "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            color: #3a3a3a;
+            background: #fffaf5;
+            line-height: 1.7;
+        }
+        img { max-width: 100%; display: block; }
+        a { text-decoration: none; color: inherit; }
+
+        :root {
+            --primary: #e07a5f;
+            --primary-dark: #c4634b;
+            --secondary: #f2cc8f;
+            --accent: #81b29a;
+            --dark: #3d405b;
+            --light: #fffaf5;
+            --card-bg: #ffffff;
+            --shadow: 0 8px 30px rgba(61, 64, 91, 0.10);
+        }
+
+        header {
+            position: fixed; top: 0; width: 100%; z-index: 100;
+            background: rgba(255, 250, 245, 0.92);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+        .nav-inner {
+            max-width: 1100px; margin: auto;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 24px;
+        }
+        .logo {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 1.3rem; font-weight: 700; color: var(--dark);
+        }
+        .logo img { width: 40px; height: 40px; border-radius: 12px; }
+        nav a {
+            margin-left: 28px; font-size: 0.95rem; color: var(--dark);
+            transition: color .2s;
+        }
+        nav a:hover { color: var(--primary); }
+
+        .hero {
+            padding: 138px 24px 70px;
+            background: linear-gradient(170deg, #fff0e6 0%, #fffaf5 62%);
+            text-align: center;
+        }
+        .hero h1 {
+            font-size: clamp(2rem, 5vw, 3rem);
+            color: var(--dark);
+            margin-bottom: 16px;
+        }
+        .hero h1 span { color: var(--primary); }
+        .hero p {
+            max-width: 680px; margin: 0 auto 34px;
+            font-size: 1.08rem; color: #666;
+        }
+        .hero-buttons { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+        .btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 14px 32px; border-radius: 50px; font-size: 1rem;
+            font-weight: 600; transition: all .25s; cursor: pointer; border: none;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: #fff; box-shadow: 0 4px 20px rgba(224, 122, 95, 0.4);
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(224, 122, 95, 0.5); }
+        .btn-outline {
+            background: transparent; color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+        .btn-outline:hover { background: var(--primary); color: #fff; }
+
+        section { padding: 80px 24px; }
+        .section-title {
+            text-align: center; font-size: 1.8rem; color: var(--dark);
+            margin-bottom: 12px;
+        }
+        .section-sub {
+            text-align: center; max-width: 640px; margin: 0 auto 50px;
+            color: #888; font-size: 1rem;
+        }
+
+        .tutorial { background: #fff; }
+        .steps-grid {
+            max-width: 1050px; margin: auto;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 28px;
+        }
+        .tutorial-card {
+            background: var(--light);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            transition: transform .25s, box-shadow .25s;
+        }
+        .tutorial-card:hover { transform: translateY(-5px); box-shadow: 0 12px 38px rgba(61, 64, 91, 0.14); }
+        .tutorial-card.step-wide {
+            grid-column: span 2;
+            display: grid;
+            grid-template-columns: minmax(240px, 0.85fr) minmax(300px, 1.15fr);
+            align-items: center;
+        }
+        .phone-frame {
+            background: var(--dark);
+            padding: 10px;
+            border-radius: 28px;
+            margin: 24px auto 0;
+            width: min(220px, calc(100% - 48px));
+        }
+        .phone-frame img {
+            border-radius: 20px;
+            background: #fff;
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+        }
+        .step-wide .phone-frame {
+            width: min(300px, calc(100% - 48px));
+            margin: 24px auto;
+        }
+        .step-copy { padding: 24px 24px 28px; }
+        .step-label {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 42px; height: 42px; border-radius: 50%;
+            background: var(--primary); color: #fff;
+            font-weight: 700; margin-bottom: 14px;
+        }
+        .step-copy h3 { color: var(--dark); font-size: 1.12rem; margin-bottom: 8px; }
+        .step-copy p { color: #777; font-size: 0.92rem; }
+
+        .tips { background: var(--light); }
+        .tips-box {
+            max-width: 850px; margin: auto;
+            background: #fff; border-radius: 22px;
+            padding: 34px; box-shadow: var(--shadow);
+        }
+        .tips-box ul { padding-left: 22px; color: #666; }
+        .tips-box li { margin: 10px 0; }
+
+        .download {
+            background: linear-gradient(135deg, var(--primary), #d4624a);
+            color: #fff; text-align: center;
+        }
+        .download .section-title { color: #fff; }
+        .download .section-sub { color: rgba(255,255,255,0.85); }
+        .download-box {
+            max-width: 500px; margin: auto;
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(8px);
+            border-radius: 24px; padding: 40px 32px;
+        }
+        .qr-placeholder {
+            width: 180px; height: 180px; margin: 0 auto 24px;
+            background: #fff; border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
+            color: #aaa; font-size: 0.85rem;
+        }
+        .qr-placeholder img { width: 160px; height: 160px; border-radius: 12px; }
+        .download-box .btn {
+            background: #fff; color: var(--primary);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        .download-box .btn:hover { transform: translateY(-2px); }
+        .download-note { margin-top: 16px; font-size: 0.85rem; opacity: 0.8; }
+
+        footer {
+            text-align: center; padding: 32px 24px;
+            background: var(--dark); color: rgba(255,255,255,0.6);
+            font-size: 0.85rem;
+        }
+        footer a { color: rgba(255,255,255,0.75); }
+
+        @media (max-width: 700px) {
+            .nav-inner { padding: 12px 16px; }
+            nav a { margin-left: 14px; font-size: 0.84rem; }
+            .hero { padding: 120px 16px 58px; }
+            section { padding: 60px 16px; }
+            .steps-grid { grid-template-columns: 1fr; }
+            .phone-frame { width: min(230px, calc(100% - 42px)); }
+            .tutorial-card.step-wide {
+                grid-column: auto;
+                display: block;
+            }
+            .step-wide .phone-frame { width: min(250px, calc(100% - 42px)); }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="nav-inner">
+        <div class="logo">
+            <img src="images/app-icon-64.png" alt="暖心厨房App图标">
+            暖心厨房
+        </div>
+        <nav>
+            <a href="#steps">使用步骤</a>
+            <a href="#tips">使用提示</a>
+            <a href="#download">下载</a>
+        </nav>
+    </div>
+</header>
+
+<section class="hero">
+    <h1>暖心厨房<span>使用教程</span></h1>
+    <p>
+        本教程从登录后的首页开始，介绍如何添加人员档案、使用 AI 推荐做饭、保存本次用餐记录，以及进入菜谱书添加自己的菜品。
+    </p>
+    <div class="hero-buttons">
+        <a href="#steps" class="btn btn-primary">查看使用步骤</a>
+        <a href="tutorial01.html" class="btn btn-outline">查看安装/注册教程</a>
+        <a href="index.html" class="btn btn-outline">返回首页</a>
+    </div>
+</section>
+
+<section class="tutorial" id="steps">
+    <h2 class="section-title">App 使用流程</h2>
+    <p class="section-sub">按照下面步骤完成从添加人员、AI 推荐菜品到保存用餐记录的完整流程。</p>
+
+    <div class="steps-grid">
+        <article class="tutorial-card">
+            <div class="phone-frame"><img src="usage_images/using_img_1.png" alt="登录App进入主页，点击加号添加人员"></div>
+            <div class="step-copy"><div class="step-label">1</div><h3>进入“我的家庭”页，点击加号添加人员</h3><p>登录 App 后进入主页，点击加号，为家里的人员创建健康档案。</p></div>
+        </article>
+
+        <article class="tutorial-card">
+            <div class="phone-frame"><img src="usage_images/using_img_2.png" alt="输入人员信息"></div>
+            <div class="step-copy"><div class="step-label">2</div><h3>输入人员信息</h3><p>填写人员的基本信息、健康情况、饮食限制和口味偏好。</p></div>
+        </article>
+
+        <article class="tutorial-card">
+            <div class="phone-frame"><img src="usage_images/using_img_3.png" alt="填写完以后点击保存"></div>
+            <div class="step-copy"><div class="step-label">3</div><h3>填写完成后点击保存</h3><p>确认信息无误后点击保存，人员档案会保存在 App 中。</p></div>
+        </article>
+
+        <article class="tutorial-card">
+            <div class="phone-frame"><img src="usage_images/using_img_4.png" alt="点击去做饭"></div>
+            <div class="step-copy"><div class="step-label">4</div><h3>点击 [ 》》》 去做饭 《《《] 按钮</h3><p>回到主页后，点击“去做饭”，开始创建本次用餐安排。</p></div>
+        </article>
+
+        <article class="tutorial-card step-wide">
+            <div class="phone-frame"><img src="usage_images/using_img_5.png" alt="填写餐别，选择用餐人员，然后点击AI推荐"></div>
+            <div class="step-copy"><div class="step-label">5</div><h3>选择餐别和用餐人员</h3><p>选择本次是早餐、午餐、晚餐或加餐，再选择参与用餐的人员。</p><p>完成后点击 <b><u>》》 AI 推荐 《《</u></b>，让 App 根据档案信息生成菜品建议。</p></div>
+        </article>
+
+        <article class="tutorial-card">
+            <div class="phone-frame"><img src="usage_images/using_img_6.png" alt="输入今天想吃的东西后确定"></div>
+            <div class="step-copy"><div class="step-label">6</div><h3>输入今天想吃的内容</h3><p>可以输入想吃的食材、口味或简单要求，然后点击确定。</p><p>您的AI大厨会用一些时间为您安排菜品，请您耐心等待。</p></div>
+        </article>
+
+        <article class="tutorial-card step-wide">
+            <div class="phone-frame"><img src="usage_images/using_img_7.png" alt="等待后在AI推荐菜品里选择，完成后点确认"></div>
+            <div class="step-copy"><div class="step-label">7</div><h3>选择 AI 推荐菜品</h3><p>待 AI 生成推荐后，推荐菜品将展示在列表中。</p><p>在推荐菜品中选择适合本次用餐的菜。选择完成后点击确认。</p></div>
+        </article>
+
+        <article class="tutorial-card">
+            <div class="phone-frame"><img src="usage_images/using_img_8.png" alt="点击确定保存这一顿饭的记录"></div>
+            <div class="step-copy"><div class="step-label">8</div><h3>点击[确认选择]， 保存用餐记录</h3><p>确认本次选择后，点击确定，保存这一顿饭的记录，方便以后查看用餐历史。</p></div>
+        </article>
+
+        <article class="tutorial-card">
+            <div class="phone-frame"><img src="usage_images/using_img_9.png" alt="如果想添加自己的菜品，点击查看我的菜谱书"></div>
+            <div class="step-copy"><div class="step-label">9</div><h3>进入我的菜谱书</h3><p>如果想添加自己的菜品，可以点击“查看我的菜谱书”，进入菜品管理页面。</p></div>
+        </article>
+
+        <article class="tutorial-card">
+            <div class="phone-frame"><img src="usage_images/using_img_10.png" alt="在菜谱书里点击加号添加自己的菜品"></div>
+            <div class="step-copy"><div class="step-label">10</div><h3>添加自己的菜品</h3><p>在菜谱书页面点击加号，填写菜品信息，把家里常做的菜保存到自己的菜谱书中。</p></div>
+        </article>
+    </div>
+</section>
+
+<section class="tips" id="tips">
+    <h2 class="section-title">使用提示</h2>
+    <p class="section-sub">第一次使用时，可以先添加一位人员和几道常吃菜，再体验 AI 推荐流程。</p>
+    <div class="tips-box">
+        <ul>
+            <li>人员档案填写得越完整，AI 推荐时可参考的信息越多。</li>
+            <li>使用 AI 推荐前，请先选择本次用餐人员，这样推荐结果更贴合家人的情况。</li>
+            <li>AI 推荐菜品可以作为参考，最终仍然由用户自己选择和确认。</li>
+            <li>保存用餐记录后，之后可以在用餐历史中查看过去吃过什么。</li>
+            <li>常做的家常菜可以提前加入菜谱书，之后做饭时选择会更方便。</li>
+        </ul>
+    </div>
+</section>
+
+<section class="download" id="download">
+    <h2 class="section-title">现在就下载体验</h2>
+    <p class="section-sub">安卓手机点击按钮下载安装，按照教程完成注册并开始使用。</p>
+    <div class="download-box">
+        <div class="qr-placeholder">
+            <img src="images/QR-code.png" alt="下载二维码">
+        </div>
+        <a href="app/autodishes-0.1.1Beta.apk" class="btn" download>
+            下载 AutoDishes.apk
+        </a>
+        <p class="download-note">
+            Android 6.0 及以上系统 · 首次安装请根据手机提示允许安装
+        </p>
+    </div>
+</section>
+
+<footer>
+    <p>© 2026 暖心厨房 AutoDishes · 用心做好每一餐 ❤</p>
+    <p><a href="https://beian.miit.gov.cn/" target="_blank">京ICP备2026032412号-1</a></p>
+</footer>
+
+</body>
+</html>
